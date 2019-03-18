@@ -1,0 +1,224 @@
+---
+# tasks file for edge_firewall
+- name: Accept incoming packets from localhost interface
+  iptables:
+    table: filter
+    chain: INPUT
+    in_interface: lo
+    jump: ACCEPT
+    comment: Accept incoming packets from localhost interface
+  become: yes
+  notify:
+    - persist iptables
+
+- name: Accept incoming packets from LAN interface
+  iptables:
+    table: filter
+    chain: INPUT
+    in_interface: "{{ ryezone_labs_lanInterface }}"
+    jump: ACCEPT
+    comment: Accept incoming packets from LAN interface
+  become: yes
+  notify:
+    - persist iptables
+
+- name: Accept incoming packets from the WAN if the router initiated the connection
+  iptables:
+    table: filter
+    chain: INPUT
+    in_interface: "{{ ryezone_labs_wanInterface }}"
+    ctstate: ESTABLISHED,RELATED
+    jump: ACCEPT
+    comment: Accept incoming packets from the WAN if the router initiated the connection
+  become: yes
+  notify:
+    - persist iptables
+
+- name: Forward LAN packets to the WAN
+  iptables:
+    table: filter
+    chain: FORWARD
+    in_interface: "{{ ryezone_labs_lanInterface }}"
+    out_interface: "{{ ryezone_labs_wanInterface }}"
+    jump: ACCEPT
+    comment: Forward LAN packets to the WAN
+  become: yes
+  notify:
+    - persist iptables
+
+- name: Forward WAN packets to the LAN if the LAN initiated the connection
+  iptables:
+    table: filter
+    chain: FORWARD
+    in_interface: "{{ ryezone_labs_wanInterface }}"
+    out_interface: "{{ ryezone_labs_lanInterface }}"
+    ctstate: ESTABLISHED,RELATED
+    jump: ACCEPT
+    comment: Forward WAN packets to the LAN if the LAN initiated the connection
+  become: yes
+  notify:
+    - persist iptables
+
+- name: "Accept TCP port {{ item.port }} from {{ item.cidr }}"
+  iptables:
+    chain: INPUT
+    protocol: tcp
+    source: "{{ item.cidr }}"
+    destination_port: "{{ item.port }}"
+    ctstate: NEW,ESTABLISHED
+    jump: ACCEPT
+    comment: "Accept TCP port {{ item.port }} from {{ item.cidr }}"
+  become: yes
+  notify:
+    - persist iptables
+  loop: "{{ edge_firewall_open_incoming_ports }}"
+
+- name: "Accept ICMP type {{ item.icmp_type }} with destination cidr {{ item.cidr }}"
+  iptables:
+    chain: INPUT
+    protocol: icmp
+    icmp_type: "{{ item.icmp_type }}"
+    destination: "{{ item.cidr }}"
+    jump: ACCEPT
+    comment: "Accept ICMP type {{ item.icmp_type }} with destination cidr {{ item.cidr }}"
+  become: yes
+  notify:
+    - persist iptables
+  loop: "{{ edge_firewall_allowed_incoming_icmp }}"
+
+- name: "Reject UDP port {{ item.port }} sent to destination cidr {{ item.cidr }}"
+  iptables:
+    chain: INPUT
+    protocol: udp
+    destination: "{{ item.cidr }}"
+    destination_port: "{{ item.port }}"
+    jump: REJECT
+    comment: "Reject UDP port {{ item.port }} sent to destination cidr {{ item.cidr }}"
+  become: yes
+  notify:
+    - persist iptables
+  loop: "{{ edge_firewall_closed_incoming_udp_ports }}"
+
+- name: NAT Rules
+  include_tasks: nat_rules.yml
+
+- name: Create Iptables NAT chain
+  iptables:
+    table: nat
+    chain: POSTROUTING
+    out_interface: "{{ ryezone_labs_wanInterface }}"
+    jump: MASQUERADE
+    comment: NAT Masquerade
+  become: yes
+  notify:
+    - persist iptables
+
+- name: Default policy to drop all incoming ipv4 packets
+  iptables:
+    table: filter
+    chain: INPUT
+    policy: DROP
+    comment: Default policy to drop all incoming ipv4 packets
+  become: yes
+  notify:
+    - persist iptables
+
+- name: Default policy to drop all forwarded ipv4 packets
+  iptables:
+    table: filter
+    chain: FORWARD
+    policy: DROP
+    comment: Default policy to drop all forwarded ipv4 packets
+  become: yes
+  notify:
+    - persist iptables
+
+- name: Default policy to accept all outputed ipv4 packets
+  iptables:
+    table: filter
+    chain: OUTPUT
+    policy: ACCEPT
+    comment: Default policy to accept all outputed ipv4 packets
+  become: yes
+  notify:
+    - persist iptables
+
+- name: IPV6 - Default policy to drop all incoming ipv6 packets
+  iptables:
+    table: filter
+    ip_version: ipv6
+    chain: INPUT
+    policy: DROP
+    comment: Default policy to drop all incoming ipv6 packets
+  become: yes
+  notify:
+    - persist iptables
+
+- name: IPV6 - Default policy to drop all forwarded ipv6 packets
+  iptables:
+    table: filter
+    ip_version: ipv6
+    chain: FORWARD
+    policy: DROP
+    comment: Default policy to drop all forwarded ipv6 packets
+  become: yes
+  notify:
+    - persist iptables
+
+- name: IPV6 - Default policy to accept all outputed ipv6 packets
+  iptables:
+    table: filter
+    ip_version: ipv6
+    chain: OUTPUT
+    policy: ACCEPT
+    comment: Default policy to accept all outputed ipv4 packets
+  become: yes
+  notify:
+    - persist iptables
+
+- name: IPV6 - Accept incoming packets from localhost interface
+  iptables:
+    table: filter
+    ip_version: ipv6
+    chain: INPUT
+    in_interface: lo
+    jump: ACCEPT
+    comment: Accept incoming packets from localhost interface
+  become: yes
+  notify:
+    - persist iptables
+
+- name: IPV6 - Reject connection attempts not initiated from the host
+  iptables:
+    table: filter
+    ip_version: ipv6
+    chain: INPUT
+    protocol: tcp
+    syn: match
+    jump: DROP
+  become: yes
+  notify:
+    - persist iptables
+
+- name: IPV6 - Allow return connections initiated from the host
+  iptables:
+    table: filter
+    ip_version: ipv6
+    chain: INPUT
+    ctstate: ESTABLISHED,RELATED
+    jump: ACCEPT
+  become: yes
+  notify:
+    - persist iptables
+
+- name: IPV6 - Accept all ICMP v6 packets
+  iptables:
+    table: filter
+    chain: INPUT
+    ip_version: ipv6
+    protocol: ipv6-icmp
+    jump: ACCEPT
+  become: yes
+  notify:
+    - persist iptables
+

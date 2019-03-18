@@ -1,0 +1,89 @@
+---
+- name: "NAT Rule: PREROUTING {{ item.protocol }} {{ item.wan_port }}==>{{ item.host_port }}
+         to {{ item.host_address }}"
+  iptables:
+    table: nat
+    chain: PREROUTING
+    in_interface: "{{ item.wan_interface }}"
+    protocol: "{{ item.protocol }}"
+    destination_port: "{{ item.wan_port }}"
+    to_destination: "{{ item.host_address }}"
+    jump: DNAT
+    comment: "NAT Rule: PREROUTING {{ item.protocol }} {{ item.wan_port }}==>{{ item.host_port }}
+              to {{ item.host_address }}"
+  become: yes
+  notify:
+    - persist iptables
+  loop: "{{ edge_firewall_nat_rules }}"
+
+- name: "NAT Rule: FORWARD NEW {{ item.protocol }} {{ item.wan_port }}
+         {{ item.wan_interface }}==>{{ item.lan_interface }} {{ item.host_port }} to {{ item.host_address }}"
+  iptables:
+    table: filter
+    chain: FORWARD
+    in_interface: "{{ item.wan_interface }}"
+    out_interface: "{{ item.lan_interface }}"
+    protocol: "{{ item.protocol }}"
+    destination_port: "{{ item.host_port }}"
+    ctstate: NEW
+    jump: ACCEPT
+    comment: "NAT Rule: FORWARD NEW {{ item.protocol }} {{ item.wan_port }}
+              {{ item.wan_interface }}==>{{ item.lan_interface }} {{ item.host_port }} to {{ item.host_address }}"
+  become: yes
+  notify:
+    - persist iptables
+  loop: "{{ edge_firewall_nat_rules }}"
+
+- name: "NAT Rule: FORWARD ESTABLISHED,RELATED {{ item.protocol }} {{ item.wan_port }}
+         {{ item.wan_interface }}==>{{ item.lan_interface }} {{ item.host_port }} to {{ item.host_address }}"
+  iptables:
+    table: filter
+    chain: FORWARD
+    in_interface: "{{ item.wan_interface }}"
+    out_interface: "{{ item.lan_interface }}"
+    protocol: "{{ item.protocol }}"
+    destination_port: "{{ item.host_port }}"
+    ctstate: ESTABLISHED,RELATED
+    jump: ACCEPT
+    comment: "NAT Rule: FORWARD ESTABLISHED,RELATED {{ item.protocol }} {{ item.wan_port }}
+              {{ item.wan_interface }}==>{{ item.lan_interface }} {{ item.host_port }} to {{ item.host_address }}"
+  become: yes
+  notify:
+    - persist iptables
+  loop: "{{ edge_firewall_nat_rules }}"
+
+- name: "NAT Rule: FORWARD ESTABLISHED,RELATED from {{ item.host_address }} {{ item.protocol }} {{ item.host_port }}
+         {{ item.lan_interface }}==>{{ item.wan_interface }} {{ item.wan_port }}"
+  iptables:
+    table: filter
+    chain: FORWARD
+    in_interface: "{{ item.lan_interface }}"
+    out_interface: "{{ item.wan_interface }}"
+    protocol: "{{ item.protocol }}"
+    destination_port: "{{ item.wan_port }}"
+    ctstate: ESTABLISHED,RELATED
+    jump: ACCEPT
+    comment: "NAT Rule: FORWARD ESTABLISHED,RELATED from {{ item.host_address }} {{ item.protocol }} {{ item.host_port }}
+              {{ item.lan_interface }}==>{{ item.wan_interface }} {{ item.wan_port }}"
+  become: yes
+  notify:
+    - persist iptables
+  loop: "{{ edge_firewall_nat_rules }}"
+
+- name: "NAT Rule: Rewrite Address from {{ item.lan_interface }} {{ item.protocol }} {{ item.wan_port }}
+         {{ item.host_address }}==>{{ item.lan_address }}"
+  iptables:
+    table: nat
+    chain: POSTROUTING
+    out_interface: "{{ item.lan_interface }}"
+    destination: "{{ item.host_address }}"
+    protocol: "{{ item.protocol }}"
+    destination_port: "{{ item.wan_port }}"
+    to_source: "{{ item.lan_address }}"
+    jump: SNAT
+    comment: "NAT Rule: Rewrite Address from {{ item.lan_interface }} {{ item.protocol }} {{ item.wan_port }}
+              {{ item.host_address }}==>{{ item.lan_address }}"
+  become: yes
+  notify:
+    - persist iptables
+  loop: "{{ edge_firewall_nat_rules }}"
