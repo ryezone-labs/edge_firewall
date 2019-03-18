@@ -221,4 +221,3 @@
   become: yes
   notify:
     - persist iptables
-
