@@ -1,6 +1,5 @@
 ---
-- name: "NAT Rule: PREROUTING {{ item.protocol }} {{ item.wan_port }}==>{{ item.host_port }}
-         to {{ item.host_address }}"
+- name: "NAT Rule: PREROUTING WAN==>LAN"
   iptables:
     table: nat
     chain: PREROUTING
@@ -16,8 +15,7 @@
     - persist iptables
   loop: "{{ edge_firewall_nat_rules }}"
 
-- name: "NAT Rule: FORWARD NEW {{ item.protocol }} {{ item.wan_port }}
-         {{ item.wan_interface }}==>{{ item.lan_interface }} {{ item.host_port }} to {{ item.host_address }}"
+- name: "NAT Rule: FORWARD NEW WAN==>LAN"
   iptables:
     table: filter
     chain: FORWARD
@@ -34,8 +32,7 @@
     - persist iptables
   loop: "{{ edge_firewall_nat_rules }}"
 
-- name: "NAT Rule: FORWARD ESTABLISHED,RELATED {{ item.protocol }} {{ item.wan_port }}
-         {{ item.wan_interface }}==>{{ item.lan_interface }} {{ item.host_port }} to {{ item.host_address }}"
+- name: "NAT Rule: FORWARD ESTABLISHED,RELATED WAN==>LAN"
   iptables:
     table: filter
     chain: FORWARD
@@ -52,8 +49,7 @@
     - persist iptables
   loop: "{{ edge_firewall_nat_rules }}"
 
-- name: "NAT Rule: FORWARD ESTABLISHED,RELATED from {{ item.host_address }} {{ item.protocol }} {{ item.host_port }}
-         {{ item.lan_interface }}==>{{ item.wan_interface }} {{ item.wan_port }}"
+- name: "NAT Rule: FORWARD ESTABLISHED,RELATED from LAN==>WAN"
   iptables:
     table: filter
     chain: FORWARD
@@ -70,8 +66,7 @@
     - persist iptables
   loop: "{{ edge_firewall_nat_rules }}"
 
-- name: "NAT Rule: Rewrite Address from {{ item.lan_interface }} {{ item.protocol }} {{ item.wan_port }}
-         {{ item.host_address }}==>{{ item.lan_address }}"
+- name: "NAT Rule: Rewrite Address from HOST==>LAN"
   iptables:
     table: nat
     chain: POSTROUTING

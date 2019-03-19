@@ -56,7 +56,7 @@ edge_firewall_nat_rules:
   - protocol: tcp
     wan_interface: "{{ ryezone_labs_wanInterface }}"
     wan_port: 80
-    lan_inteface: "{{ ryezone_labs_lanInterface }}"
+    lan_interface: "{{ ryezone_labs_lanInterface }}"
     lan_address: "{{ ryezone_labs_lanAddress }}"
     host_port: 80
     host_address: 10.100.10.11
@@ -93,7 +93,7 @@ Example Playbook
       - protocol: tcp
         wan_interface: "{{ ryezone_labs_wanInterface }}"
         wan_port: 80
-        lan_inteface: "{{ ryezone_labs_lanInterface }}"
+        lan_interface: "{{ ryezone_labs_lanInterface }}"
         lan_address: "{{ ryezone_labs_lanAddress }}"
         host_port: 80
         host_address: 10.100.10.11
