@@ -1,5 +1,11 @@
 ---
 # tasks file for edge_firewall
+- name: Create iptables configuration directory.
+  file:
+    path: /etc/iptables
+    state: directory
+  become: yes
+
 - name: Accept incoming packets from localhost interface
   iptables:
     table: filter
