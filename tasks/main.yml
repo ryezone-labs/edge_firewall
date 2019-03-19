@@ -71,7 +71,7 @@
   become: yes
   notify:
     - persist iptables
-  loop: "{{ edge_firewall_open_incoming_ports }}"
+  loop: "{{ edge_firewall_open_incoming_tcp_ports }}"
 
 - name: "Accept ICMP type {{ item.icmp_type }} with destination cidr {{ item.cidr }}"
   iptables:
